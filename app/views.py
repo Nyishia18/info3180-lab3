@@ -1,5 +1,7 @@
-from app import app
+from app import app, mail
 from flask import render_template, request, redirect, url_for, flash
+from flask_mail import Message
+from app.forms import ContactForm  # Import your form
 
 
 ###
@@ -18,10 +20,46 @@ def about():
     return render_template('about.html', name="Mary Jane")
 
 
+@app.route('/contact', methods=['GET', 'POST'])
+def contact():
+    """Render and process the contact form."""
+    form = ContactForm()
+
+    if form.validate_on_submit():
+        # Get data from form
+        name = form.name.data
+        email = form.email.data
+        subject = form.subject.data
+        message_body = form.message.data
+
+        # Create email message
+        msg = Message(
+            subject=subject,
+            sender=(name, email),
+            recipients=["JohnDoe@example.com"]  # Replace with your Mailtrap test address
+        )
+        msg.body = message_body
+
+        # Send the email
+        mail.send(msg)
+
+        # Flash success message
+        flash("Your email was successfully sent!", "success")
+
+        # Redirect to home page
+        return redirect(url_for('home'))
+
+    else:
+        # Flash form validation errors if any
+        if request.method == 'POST':
+            flash_errors(form)
+
+    return render_template('contact.html', form=form)
+
+
 ###
 # The functions below should be applicable to all Flask apps.
 ###
-
 
 # Flash errors from the form if validation fails
 def flash_errors(form):
@@ -44,8 +82,7 @@ def send_text_file(file_name):
 def add_header(response):
     """
     Add headers to both force latest IE rendering engine or Chrome Frame,
-    and also tell the browser not to cache the rendered page. If we wanted
-    to we could change max-age to 600 seconds which would be 10 minutes.
+    and also tell the browser not to cache the rendered page.
     """
     response.headers['X-UA-Compatible'] = 'IE=Edge,chrome=1'
     response.headers['Cache-Control'] = 'public, max-age=0'
